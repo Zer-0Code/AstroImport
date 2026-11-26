@@ -17,7 +17,7 @@ export default function Auth() {
   return (
     <div className="min-h-screen grid place-items-center p-4">
       <form onSubmit={submit} className="card w-full max-w-sm space-y-3">
-        <img src="/logo.png" alt="ASTRO IMPORT" className="h-24 mx-auto" />
+        <img src="/logo.png" alt="ASTRO IMPORT" className="h-24 mx-auto drop-shadow-[0_0_28px_rgba(144,80,255,.65)]" />
         <h1 className="text-center text-xl font-semibold tracking-wide">ASTRO IMPORT</h1>
         {mode === 'up' && <input className="input" placeholder="Nombre" value={name} onChange={e => setName(e.target.value)} required />}
         <input className="input" type="email" placeholder="Correo" value={email} onChange={e => setEmail(e.target.value)} required />

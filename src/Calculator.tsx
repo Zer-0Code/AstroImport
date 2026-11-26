@@ -12,6 +12,9 @@ const pct = (x: number) => `${x.toFixed(1)}%`
 const daysAgo = (d: string) => Math.floor((Date.now() - new Date(d + 'T00:00:00').getTime()) / 864e5)
 const median = (a: number[]) => { const s = [...a].sort((x, y) => x - y), m = s.length >> 1; return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2 }
 
+const Num = ({ l, v, s, suf }: { l: string; v: string; s: (x: string) => void; suf?: string }) =>
+  <label className="block text-sm"><span className="text-astro-gray">{l}</span><div className="relative"><input className="input" inputMode="decimal" value={v} onChange={e => s(e.target.value)} />{suf && <span className="absolute right-3 top-2 text-astro-gray text-sm">{suf}</span>}</div></label>
+
 export default function Calculator({ ws, uid }: { ws: { id: string }; uid: string }) {
   const [prods, setProds] = useState<P[]>([]), [sups, setSups] = useState<{ id: string; name: string }[]>([]), [comps, setComps] = useState<C[]>([])
   const [quotes, setQuotes] = useState<Q[]>([]), [mem, setMem] = useState<Mem[]>([]), [hist, setHist] = useState<{ new_price: number; new_cost: number; changed_at: string }[]>([])
@@ -80,10 +83,8 @@ export default function Calculator({ ws, uid }: { ws: { id: string }; uid: strin
     if (error) return setErr(error.message); setMsg('Precio y costo guardados en el producto (queda en su historial).'); load(); pick(pid)
   }
 
-  const Num = ({ l, v, s, suf }: { l: string; v: string; s: (x: string) => void; suf?: string }) =>
-    <label className="block text-sm"><span className="text-astro-gray">{l}</span><div className="relative"><input className="input" inputMode="decimal" value={v} onChange={e => s(e.target.value)} />{suf && <span className="absolute right-3 top-2 text-astro-gray text-sm">{suf}</span>}</div></label>
-  const Strat = ({ t, p, m, note }: { t: string; p: number; m: string; note?: string }) => (
-    <div className="card !bg-astro-surface2"><p className="text-xs text-astro-gray">{t}</p>
+  const strat = ({ t, p, m, note }: { t: string; p: number; m: string; note?: string }) => (
+    <div className="card"><p className="text-xs text-astro-gray">{t}</p>
       {isNaN(p) ? <p className="text-sm text-red-400 mt-1">No alcanzable</p> : <>
         <p className="text-xl font-semibold">{money(p)}</p><p className="text-xs text-astro-gray">Margen neto {pct(netMargin(p))} · objetivo {m}%</p>
         {pos(p) && <p className="text-xs text-astro-violet-300">{pos(p)}</p>}{note && <p className="text-xs text-amber-400">{note}</p>}
@@ -134,10 +135,10 @@ export default function Calculator({ ws, uid }: { ws: { id: string }; uid: strin
         <p className="text-xs text-astro-gray">Los márgenes netos son tus objetivos (editables), no precios de mercado. Incluyen comisión de pago y riesgo de devolución.</p>
         {impossible && <p className="text-sm text-red-400">Algún margen no es alcanzable: margen + comisión + riesgo no puede llegar a 100%.</p>}
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          <Strat t="Precio mínimo recomendado" p={minP} m={mMin} />
-          <Strat t="1 · Rotación rápida" p={rotP} m={mRot} />
-          <Strat t="2 · Equilibrado" p={eqP} m={mEq} />
-          <Strat t="3 · Premium" p={premP} m={mPrem} note={prod && !prod.warranty ? 'Este producto no tiene garantía registrada: el premium necesita valor agregado.' : undefined} />
+          {strat({ t: "Precio mínimo recomendado", p: minP, m: mMin })}
+          {strat({ t: "1 · Rotación rápida", p: rotP, m: mRot })}
+          {strat({ t: "2 · Equilibrado", p: eqP, m: mEq })}
+          {strat({ t: "3 · Premium", p: premP, m: mPrem, note: prod && !prod.warranty ? 'Este producto no tiene garantía registrada: el premium necesita valor agregado.' : undefined })}
         </div>
         <div className="grid lg:grid-cols-2 gap-4 text-sm">
           <div className="space-y-1"><h4 className="font-medium">Mercado</h4>

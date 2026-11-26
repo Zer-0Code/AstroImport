@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { supabase, money, CATEGORIES, catLabel } from './lib'
+import { supabase, chan, money, CATEGORIES, catLabel } from './lib'
 import { Modal, Field } from './ui'
 
 type P = { id: string; name: string; description: string | null; category: string; supplier_id: string | null; cost: number; sale_price: number; stock: number; min_stock: number
-  duration: string | null; warranty: string | null; delivery_mode: string | null; status: string; unit_profit: number; margin_pct: number; updated_at: string }
+  duration: string | null; warranty: string | null; delivery_mode: string | null; status: string; on_demand: boolean; unit_profit: number; margin_pct: number; updated_at: string }
 type H = { id: number; old_cost: number | null; new_cost: number; old_price: number | null; new_price: number; changed_at: string; changed_by: string | null }
-const EMPTY = { id: '', name: '', description: '', category: 'otros', supplier_id: '', cost: '0', sale_price: '0', stock: '0', min_stock: '0', duration: '', warranty: '', delivery_mode: '', status: 'active' }
+const EMPTY = { id: '', name: '', description: '', category: 'otros', supplier_id: '', cost: '0', sale_price: '0', stock: '0', min_stock: '0', duration: '', warranty: '', delivery_mode: '', status: 'active', on_demand: true }
 type F = typeof EMPTY
 const SORTS: [string, string][] = [['name', 'Nombre'], ['margin_pct', 'Margen'], ['unit_profit', 'Ganancia'], ['stock', 'Stock'], ['updated_at', 'Actualización']]
 
@@ -22,7 +22,7 @@ export default function Products({ ws, uid }: { ws: { id: string }; uid: string 
   }, [ws.id])
   useEffect(() => { load() }, [load])
   useEffect(() => {
-    const ch = supabase.channel('prod-' + ws.id)
+    const ch = chan('prod-' + ws.id)
     for (const t of ['products', 'suppliers']) ch.on('postgres_changes', { event: '*', schema: 'public', table: t, filter: `workspace_id=eq.${ws.id}` }, load)
     ch.subscribe(); return () => { supabase.removeChannel(ch) }
   }, [ws.id, load])
@@ -37,7 +37,7 @@ export default function Products({ ws, uid }: { ws: { id: string }; uid: string 
   function edit(p?: P) {
     setErr('')
     setForm(p ? { id: p.id, name: p.name, description: p.description ?? '', category: p.category, supplier_id: p.supplier_id ?? '', cost: String(p.cost), sale_price: String(p.sale_price),
-      stock: String(p.stock), min_stock: String(p.min_stock), duration: p.duration ?? '', warranty: p.warranty ?? '', delivery_mode: p.delivery_mode ?? '', status: p.status } : EMPTY)
+      stock: String(p.stock), min_stock: String(p.min_stock), duration: p.duration ?? '', warranty: p.warranty ?? '', delivery_mode: p.delivery_mode ?? '', status: p.status, on_demand: p.on_demand } : EMPTY)
   }
   async function save(e: React.FormEvent) {
     e.preventDefault(); if (!form) return
@@ -47,7 +47,7 @@ export default function Products({ ws, uid }: { ws: { id: string }; uid: string 
     if (![cost, price].every(v => Number.isFinite(v) && v >= 0)) return setErr('Costo y precio deben ser números válidos (≥ 0).')
     if (![stock, min].every(v => Number.isInteger(v) && v >= 0)) return setErr('Stock y stock mínimo deben ser enteros (≥ 0).')
     const body = { name: form.name.trim(), description: form.description || null, category: form.category, supplier_id: form.supplier_id || null, cost, sale_price: price, stock, min_stock: min,
-      duration: form.duration || null, warranty: form.warranty || null, delivery_mode: form.delivery_mode || null, status: form.status }
+      duration: form.duration || null, warranty: form.warranty || null, delivery_mode: form.delivery_mode || null, status: form.status, on_demand: form.on_demand }
     setBusy(true); setErr('')
     const { error } = form.id ? await supabase.from('products').update(body).eq('id', form.id) : await supabase.from('products').insert({ ...body, workspace_id: ws.id, created_by: uid })
     setBusy(false)
@@ -96,7 +96,7 @@ export default function Products({ ws, uid }: { ws: { id: string }; uid: string 
                   <td className="px-3 py-2 text-astro-gray">{supName(p.supplier_id)}</td>
                   <td className="px-3 py-2">{money(p.cost)}</td><td className="px-3 py-2">{money(p.sale_price)}</td>
                   <td className={`px-3 py-2 ${p.margin_pct < 0 ? 'text-red-400' : ''}`}>{p.margin_pct}%</td><td className="px-3 py-2">{money(p.unit_profit)}</td>
-                  <td className="px-3 py-2">{p.stock}{p.status === 'active' && p.stock <= p.min_stock && <span className="ml-1 text-xs text-amber-400">{p.stock === 0 ? 'Sin stock' : 'Bajo'}</span>}</td>
+                  <td className="px-3 py-2">{p.on_demand ? <span className="text-astro-gray text-xs">Bajo encargo</span> : <>{p.stock}{p.status === 'active' && p.stock <= p.min_stock && <span className="ml-1 text-xs text-amber-400">{p.stock === 0 ? 'Sin stock' : 'Bajo'}</span>}</>}</td>
                   <td className="px-3 py-2 whitespace-nowrap text-right space-x-2 text-astro-violet-300">
                     <button onClick={() => edit(p)}>Editar</button><button onClick={() => duplicate(p)}>Duplicar</button><button onClick={() => history(p)}>Precios</button>
                     <button className="text-red-400" onClick={() => remove(p)}>Eliminar</button></td></tr>))}
@@ -113,8 +113,9 @@ export default function Products({ ws, uid }: { ws: { id: string }; uid: string 
           <Field label="Costo (S/)"><input className="input" inputMode="decimal" value={form.cost} onChange={set('cost')} /></Field>
           <Field label="Precio de venta (S/)"><input className="input" inputMode="decimal" value={form.sale_price} onChange={set('sale_price')} /></Field>
           {preview && <p className="sm:col-span-2 text-sm text-astro-violet-300">{preview}</p>}
-          <Field label="Stock"><input className="input" inputMode="numeric" value={form.stock} onChange={set('stock')} /></Field>
-          <Field label="Stock mínimo"><input className="input" inputMode="numeric" value={form.min_stock} onChange={set('min_stock')} /></Field>
+          <label className="sm:col-span-2 flex items-start gap-2 text-sm"><input type="checkbox" className="mt-1" checked={form.on_demand} onChange={e => setForm(f => f && { ...f, on_demand: e.target.checked })} /><span>Producto <b>bajo encargo</b>: se compra al proveedor cuando el cliente paga, sin controlar stock.</span></label>
+          {!form.on_demand && <><Field label="Stock"><input className="input" inputMode="numeric" value={form.stock} onChange={set('stock')} /></Field>
+          <Field label="Stock mínimo"><input className="input" inputMode="numeric" value={form.min_stock} onChange={set('min_stock')} /></Field></>}
           <Field label="Duración"><input className="input" placeholder="Ej. 1 mes" value={form.duration} onChange={set('duration')} /></Field>
           <Field label="Garantía"><input className="input" placeholder="Ej. 30 días" value={form.warranty} onChange={set('warranty')} /></Field>
           <Field label="Modalidad de entrega"><input className="input" placeholder="Ej. Cuenta compartida" value={form.delivery_mode} onChange={set('delivery_mode')} /></Field>

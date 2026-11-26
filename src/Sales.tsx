@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { supabase, money, iso } from './lib'
+import { supabase, chan, money, iso } from './lib'
 import { Modal, Field } from './ui'
 
 type S = { id: string; sale_number: string; customer_name: string; sale_date: string; payment_method: string; responsible_id: string | null; status: string; notes: string | null; total: number; total_cost: number; profit: number; units: number }
 type It = { id: string; sale_id: string; product_id: string | null; product_name: string; quantity: number; unit_price: number; unit_cost: number }
-type P = { id: string; name: string; cost: number; sale_price: number; stock: number; status: string }
+type P = { id: string; name: string; cost: number; sale_price: number; stock: number; status: string; on_demand: boolean }
 type Row = { pid: string; name: string; qty: string; price: string; cost: string }
 const ST: Record<string, string> = { completed: 'Completada', pending: 'Pendiente', cancelled: 'Cancelada', refunded: 'Reembolsada' }
 const PAY = ['yape', 'plin', 'transferencia', 'efectivo', 'tarjeta', 'paypal', 'otro']
@@ -22,7 +22,7 @@ export default function Sales({ ws, uid }: { ws: { id: string }; uid: string }) 
     const [s, i, p, m] = await Promise.all([
       supabase.from('sales_summary').select('*').eq('workspace_id', ws.id).order('sale_date', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('sale_items').select('*').eq('workspace_id', ws.id),
-      supabase.from('products').select('id,name,cost,sale_price,stock,status').eq('workspace_id', ws.id).order('name'),
+      supabase.from('products').select('id,name,cost,sale_price,stock,status,on_demand').eq('workspace_id', ws.id).order('name'),
       supabase.from('workspace_members').select('user_id,profiles(full_name,email)').eq('workspace_id', ws.id)])
     const bad = s.error || i.error || p.error || m.error
     if (bad) { setErr('No se pudo cargar: ' + bad.message); setLoading(false); return }
@@ -30,7 +30,7 @@ export default function Sales({ ws, uid }: { ws: { id: string }; uid: string }) 
   }, [ws.id])
   useEffect(() => { load() }, [load])
   useEffect(() => {
-    const ch = supabase.channel('sales-' + ws.id)
+    const ch = chan('sales-' + ws.id)
     for (const t of ['sales', 'sale_items', 'products']) ch.on('postgres_changes', { event: '*', schema: 'public', table: t, filter: `workspace_id=eq.${ws.id}` }, load)
     ch.subscribe(); return () => { supabase.removeChannel(ch) }
   }, [ws.id, load])
@@ -114,13 +114,13 @@ export default function Sales({ ws, uid }: { ws: { id: string }; uid: string }) 
           <div className="space-y-2"><p className="text-sm text-astro-gray">Productos</p>
             {f.rows.map((r: Row, i: number) => { const p = prods.find(x => x.id === r.pid); return (
               <div key={i} className="grid grid-cols-6 gap-1.5 items-end">
-                <select className="input col-span-6 sm:col-span-2" value={r.pid} onChange={e => pickProd(i, e.target.value)}><option value="">Otro (manual)</option>{prods.map(p => <option key={p.id} value={p.id}>{p.name} (stock {p.stock})</option>)}</select>
+                <select className="input col-span-6 sm:col-span-2" value={r.pid} onChange={e => pickProd(i, e.target.value)}><option value="">Otro (manual)</option>{prods.map(p => <option key={p.id} value={p.id}>{p.name}{p.on_demand ? '' : ` (stock ${p.stock})`}</option>)}</select>
                 {!r.pid && <input className="input col-span-6 sm:col-span-2" placeholder="Nombre" value={r.name} onChange={e => setRow(i, { name: e.target.value })} />}
                 <input className="input" inputMode="numeric" title="Cantidad" placeholder="Cant." value={r.qty} onChange={e => setRow(i, { qty: e.target.value })} />
                 <input className="input" inputMode="decimal" title="Precio unitario" placeholder="Precio" value={r.price} onChange={e => setRow(i, { price: e.target.value })} />
                 <input className="input" inputMode="decimal" title="Costo unitario" placeholder="Costo" value={r.cost} onChange={e => setRow(i, { cost: e.target.value })} />
                 {f.rows.length > 1 && <button type="button" className="text-red-400 text-sm" onClick={() => setF({ ...f, rows: f.rows.filter((_: Row, j: number) => j !== i) })}>Quitar</button>}
-                {p && f.status === 'completed' && num(r.qty) > p.stock && <p className="col-span-6 text-xs text-amber-400">Solo hay {p.stock} en stock.</p>}
+                {p && !p.on_demand && f.status === 'completed' && num(r.qty) > p.stock && <p className="col-span-6 text-xs text-amber-400">Solo hay {p.stock} en stock.</p>}
               </div>) })}
             <button type="button" className="text-sm text-astro-violet-300" onClick={() => setF({ ...f, rows: [...f.rows, newRow()] })}>+ Añadir producto</button></div>
           <p className="text-sm">Total <b>{money(ftotal)}</b> · Ganancia <b className={fprofit < 0 ? 'text-red-400' : ''}>{money(fprofit)}</b></p>

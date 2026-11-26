@@ -15,17 +15,17 @@ export default function App() {
     return () => data.subscription.unsubscribe()
   }, [])
 
-  async function loadWs() {
+  async function loadWs(uid: string) {
     await supabase.rpc('claim_invites')
-    const { data } = await supabase.from('workspace_members').select('workspaces(id,name)').maybeSingle()
+    const { data } = await supabase.from('workspace_members').select('workspaces(id,name)').eq('user_id', uid).maybeSingle()
     setWs((data as any)?.workspaces ?? null)
   }
-  useEffect(() => { if (session) loadWs(); else setWs(undefined) }, [session?.user.id])
+  useEffect(() => { if (session) loadWs(session.user.id); else setWs(undefined) }, [session?.user.id])
 
   async function create(e: React.FormEvent) {
     e.preventDefault(); setErr('')
     const { error } = await supabase.rpc('create_workspace', { p_name: name })
-    if (error) setErr(error.message); else loadWs()
+    if (error) setErr(error.message); else loadWs(session!.user.id)
   }
 
   if (session === undefined) return <div className="min-h-screen grid place-items-center text-astro-gray">Cargando…</div>

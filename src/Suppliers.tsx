@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { supabase, money, iso } from './lib'
+import { supabase, chan, money, iso } from './lib'
 import { Modal, Field } from './ui'
 
 type S = { id: string; name: string; url: string | null; has_official_api: boolean; integration_notes: string | null; notes: string | null }
@@ -23,7 +23,7 @@ export default function Suppliers({ ws, uid }: { ws: { id: string }; uid: string
   }, [ws.id])
   useEffect(() => { load() }, [load])
   useEffect(() => {
-    const ch = supabase.channel('sup-' + ws.id)
+    const ch = chan('sup-' + ws.id)
     for (const t of ['suppliers', 'supplier_quotes']) ch.on('postgres_changes', { event: '*', schema: 'public', table: t, filter: `workspace_id=eq.${ws.id}` }, load)
     ch.subscribe(); return () => { supabase.removeChannel(ch) }
   }, [ws.id, load])

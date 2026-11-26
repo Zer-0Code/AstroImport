@@ -1,7 +1,37 @@
 @tailwind base;@tailwind components;@tailwind utilities;
-body{@apply bg-astro-black text-astro-white antialiased;font-family:Inter,system-ui,sans-serif;
- background-image:radial-gradient(ellipse at top right,rgba(144,80,255,.14),transparent 55%)}
-.card{@apply bg-astro-surface border border-astro-border rounded-astro p-4 shadow-lg shadow-black/30}
-.input{@apply w-full bg-astro-surface2 border border-astro-border rounded-xl px-3 py-2 outline-none focus:border-astro-violet-500 transition}
-.btn{@apply bg-astro-gradient rounded-xl px-4 py-2 font-medium hover:shadow-astro-glow transition disabled:opacity-50}
-.btn-ghost{@apply border border-astro-border rounded-xl px-3 py-2 text-sm text-astro-gray hover:text-white hover:border-astro-violet-500 transition}
+:root{color-scheme:dark}
+html{scrollbar-color:#3a2a5c #0b0a10}
+body{@apply bg-astro-black text-astro-white antialiased;font-family:Inter,system-ui,-apple-system,sans-serif;
+ background-image:radial-gradient(60rem 38rem at 92% -8%,rgba(144,80,255,.24),transparent 60%),radial-gradient(44rem 30rem at -8% 108%,rgba(109,31,242,.18),transparent 60%),
+  linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);
+ background-size:auto,auto,38px 38px,38px 38px;background-attachment:fixed}
+option{background:#0D0B14;color:#fff}
+::selection{background:rgba(144,80,255,.45)}
+@keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.page{animation:fadeUp .4s cubic-bezier(.2,.7,.2,1) both}
+@layer components{
+ .card{@apply rounded-astro p-4 border border-white/10 backdrop-blur-md;
+  background:linear-gradient(155deg,rgba(32,23,52,.8),rgba(12,10,20,.93));
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 20px 40px -20px rgba(0,0,0,.9),0 3px 8px rgba(0,0,0,.35)}
+ .card-hover{@apply transition duration-300}
+ .card-hover:hover{transform:translateY(-3px);border-color:rgba(168,85,247,.5);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 22px 44px -18px rgba(139,53,245,.55),0 3px 8px rgba(0,0,0,.4)}
+ .hero{@apply rounded-astro border border-white/20;
+  background:radial-gradient(34rem 16rem at 90% 0%,rgba(255,255,255,.22),transparent 60%),linear-gradient(135deg,#4a17b5 0%,#7A27FD 52%,#AF70FD 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 30px 60px -24px rgba(139,53,245,.85),0 0 0 1px rgba(0,0,0,.3)}
+ .btn{@apply rounded-xl px-4 py-2 font-medium text-white transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  background-image:linear-gradient(135deg,#6D1FF2 0%,#9050FF 55%,#AF70FD 100%);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.35),0 10px 22px -10px rgba(144,80,255,.9)}
+ .btn:hover:not(:disabled){filter:brightness(1.12);transform:translateY(-1px);box-shadow:inset 0 1px 0 rgba(255,255,255,.4),0 14px 28px -10px rgba(168,85,247,.95)}
+ .btn:active:not(:disabled){transform:translateY(1px)}
+ .btn-ghost{@apply rounded-xl px-3 py-2 text-sm text-astro-gray border border-white/10 transition duration-200 hover:text-white hover:border-astro-violet-500/70 disabled:opacity-40;
+  background:rgba(255,255,255,.035);box-shadow:inset 0 1px 0 rgba(255,255,255,.06)}
+ .input{@apply w-full rounded-xl px-3 py-2 outline-none border border-white/10 transition duration-200 focus:border-astro-violet-500;
+  background:rgba(6,5,12,.75);box-shadow:inset 0 2px 6px rgba(0,0,0,.55)}
+ .input:focus{box-shadow:inset 0 2px 6px rgba(0,0,0,.55),0 0 0 3px rgba(144,80,255,.25)}
+ .icon-chip{@apply grid place-items-center w-9 h-9 rounded-xl text-astro-violet-300 border border-astro-violet-500/30;
+  background:linear-gradient(145deg,rgba(144,80,255,.28),rgba(144,80,255,.06));box-shadow:inset 0 1px 0 rgba(255,255,255,.15)}
+ .nav-item{@apply flex items-center gap-3 w-full rounded-xl px-3 py-2.5 text-sm text-astro-gray transition duration-200 hover:text-white hover:bg-white/5}
+ .nav-item.active{@apply text-white;background:linear-gradient(90deg,rgba(144,80,255,.3),rgba(144,80,255,.06));box-shadow:inset 3px 0 0 #AF70FD,0 8px 20px -12px rgba(144,80,255,.8)}
+}
+table tbody tr{transition:background .15s}table tbody tr:hover{background:rgba(144,80,255,.07)}
+thead th{text-transform:uppercase;letter-spacing:.04em;font-size:.68rem}

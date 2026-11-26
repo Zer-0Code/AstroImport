@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { supabase, money } from './lib'
+import { supabase, chan, money, iso } from './lib'
 import { Modal, Field } from './ui'
 
 type Sum = { income_total: number; revenue: number; other_income: number; expenses_total: number; inventory_purchases: number; operating_expenses: number; net_profit: number; cash_flow: number }
@@ -9,7 +9,7 @@ const INC: Record<string, string> = { otros: 'Otros ingresos', servicio: 'Servic
 const pad = (n: number) => String(n).padStart(2, '0')
 const bounds = (ym: string, off = 0): [string, string, string] => { const [y, m] = ym.split('-').map(Number); const a = new Date(y, m - 1 + off, 1), b = new Date(y, m + off, 0)
   return [`${a.getFullYear()}-${pad(a.getMonth() + 1)}-01`, `${b.getFullYear()}-${pad(b.getMonth() + 1)}-${pad(b.getDate())}`, `${a.getFullYear()}-${pad(a.getMonth() + 1)}`] }
-const empty = (uid: string, kind: 'income' | 'expense') => ({ id: '', kind, concept: '', amount: '', date: new Date().toISOString().slice(0, 10), category: kind === 'expense' ? 'other' : 'otros', responsible: uid, notes: '', receipt: '' as string, file: null as File | null })
+const empty = (uid: string, kind: 'income' | 'expense') => ({ id: '', kind, concept: '', amount: '', date: iso(new Date()), category: kind === 'expense' ? 'other' : 'otros', responsible: uid, notes: '', receipt: '' as string, file: null as File | null })
 
 export default function Finance({ ws, uid }: { ws: { id: string }; uid: string }) {
   const now = new Date(), [ym, setYm] = useState(`${now.getFullYear()}-${pad(now.getMonth() + 1)}`)
@@ -32,7 +32,7 @@ export default function Finance({ ws, uid }: { ws: { id: string }; uid: string }
   }, [ws.id, ym])
   useEffect(() => { setLoading(true); load() }, [load])
   useEffect(() => {
-    const ch = supabase.channel('fin-' + ws.id)
+    const ch = chan('fin-' + ws.id)
     for (const t of ['expenses', 'income', 'sales', 'sale_items']) ch.on('postgres_changes', { event: '*', schema: 'public', table: t, filter: `workspace_id=eq.${ws.id}` }, load)
     ch.subscribe(); return () => { supabase.removeChannel(ch) }
   }, [ws.id, load])

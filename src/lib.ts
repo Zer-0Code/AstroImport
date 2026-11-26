@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 export const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY)
+export const chan = (n: string) => supabase.channel(`${n}-${Math.random().toString(36).slice(2, 8)}`)
 export const money = (n: number) => new Intl.NumberFormat('es-PE', { style: 'currency', currency: 'PEN' }).format(n || 0)
 export const iso = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 export function rangeFor(k: string, from: string, to: string): [string, string] {

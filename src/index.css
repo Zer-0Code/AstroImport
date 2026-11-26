@@ -1,0 +1,7 @@
+@tailwind base;@tailwind components;@tailwind utilities;
+body{@apply bg-astro-black text-astro-white antialiased;font-family:Inter,system-ui,sans-serif;
+ background-image:radial-gradient(ellipse at top right,rgba(144,80,255,.14),transparent 55%)}
+.card{@apply bg-astro-surface border border-astro-border rounded-astro p-4 shadow-lg shadow-black/30}
+.input{@apply w-full bg-astro-surface2 border border-astro-border rounded-xl px-3 py-2 outline-none focus:border-astro-violet-500 transition}
+.btn{@apply bg-astro-gradient rounded-xl px-4 py-2 font-medium hover:shadow-astro-glow transition disabled:opacity-50}
+.btn-ghost{@apply border border-astro-border rounded-xl px-3 py-2 text-sm text-astro-gray hover:text-white hover:border-astro-violet-500 transition}

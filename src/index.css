@@ -8,7 +8,7 @@ body{@apply bg-astro-black text-astro-white antialiased;font-family:Inter,system
 option{background:#0D0B14;color:#fff}
 ::selection{background:rgba(144,80,255,.45)}
 @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-.page{animation:fadeUp .4s cubic-bezier(.2,.7,.2,1) both}
+.page{animation:fadeUp .4s cubic-bezier(.2,.7,.2,1) backwards}
 @layer components{
  .card{@apply rounded-astro p-4 border border-white/10 backdrop-blur-md;
   background:linear-gradient(155deg,rgba(32,23,52,.8),rgba(12,10,20,.93));

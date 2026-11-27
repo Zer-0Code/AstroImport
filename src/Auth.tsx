@@ -15,7 +15,7 @@ export default function Auth() {
     else if (mode === 'up' && !data.session) setMsg('Te enviamos un correo de confirmación. Ábrelo y vuelve a iniciar sesión.')
   }
   return (
-    <div className="min-h-screen grid place-items-center p-4">
+    <div className="min-h-dvh grid place-items-center p-4">
       <form onSubmit={submit} className="card w-full max-w-sm space-y-3">
         <img src="/logo.png" alt="ASTRO IMPORT" className="h-24 mx-auto drop-shadow-[0_0_28px_rgba(144,80,255,.65)]" />
         <h1 className="text-center text-xl font-semibold tracking-wide">ASTRO IMPORT</h1>

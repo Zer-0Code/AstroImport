@@ -31,10 +31,10 @@ export default function Calculator({ ws, uid }: { ws: { id: string }; uid: strin
       supabase.from('competitor_prices').select('*').eq('workspace_id', ws.id).order('observed_on', { ascending: false }),
       supabase.from('supplier_quotes').select('supplier_id,product_name,price,availability,quoted_at,recheck_after').eq('workspace_id', ws.id).order('quoted_at', { ascending: false }),
       supabase.from('workspace_members').select('user_id,share_percent,profiles(full_name,email)').eq('workspace_id', ws.id).order('joined_at')])
-    const bad = p.error || s.error || c.error || q.error || m.error
+    const bad = p.error || s.error || c.error || q.error
     if (bad) { setErr('No se pudo cargar: ' + bad.message); return }
     setProds(p.data as P[]); setSups(s.data as any[]); setComps(c.data as C[]); setQuotes(q.data as Q[])
-    const mm = m.data as any as Mem[]; setMem(mm); if (mm[0] && mm.length === 2) setShare1(String(mm[0].share_percent))
+    const mm = (m.data ?? []) as any as Mem[]; setMem(mm); if (mm[0] && mm.length === 2) setShare1(String(mm[0].share_percent))
   }, [ws.id])
   useEffect(() => { load() }, [load])
 

@@ -15,6 +15,7 @@ const P: Record<string, string> = {
   bag: 'M6 2l-2 4v14h16V6l-2-4z M4 6h16 M9 10a3 3 0 0 0 6 0',
   alert: 'M12 9v4 M12 17h.01 M10.3 3.9L2.4 18a2 2 0 0 0 1.7 3h15.8a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z',
   out: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4 M16 17l5-5-5-5 M21 12H9',
+  layers: 'M12 2l10 5-10 5L2 7z M2 12l10 5 10-5 M2 17l10 5 10-5',
   spark: 'M12 2l2.5 7.5L22 12l-7.5 2.5L12 22l-2.5-7.5L2 12l7.5-2.5z',
 }
 export function Icon({ n, className = 'w-5 h-5' }: { n: string; className?: string }) {

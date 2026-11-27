@@ -2,25 +2,25 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { supabase } from './lib'
 import { Modal, Field } from './ui'
 
-type T = { id: string; kind: string; name: string; body: string }
+type T = { id: string; kind: string; name: string; body: string; product_id: string | null }
 const KINDS: Record<string, string> = { entrega: 'Entrega', confirmacion_compra: 'Confirmación de compra', pago_pendiente: 'Pago pendiente', renovacion: 'Renovación', vencimiento: 'Vencimiento', atencion_cliente: 'Atención al cliente' }
-const FIELDS: [string, string][] = [['cliente', 'Cliente'], ['producto', 'Producto'], ['usuario', 'Correo o usuario'], ['contrasena', 'Contraseña o credencial'], ['duracion', 'Duración'], ['garantia', 'Garantía'], ['vencimiento', 'Fecha de vencimiento'], ['instrucciones', 'Instrucciones']]
+const FIELDS: [string, string][] = [['cliente', 'Cliente'], ['producto', 'Producto'], ['usuario', 'Correo o usuario'], ['contrasena', 'Contraseña o credencial'], ['duracion', 'Duración'], ['garantia', 'Garantía'], ['vencimiento', 'Fecha de vencimiento'], ['instrucciones', 'Instrucciones'], ['reglas', 'Reglas de uso']]
 const SENSITIVE = ['usuario', 'contrasena']
-const OPTIONAL = ['instrucciones']
+const OPTIONAL = ['instrucciones', 'reglas']
 const fmtDate = (d: string) => d.split('-').reverse().join('/')
 const phoneFor = (p: string) => { const d = p.replace(/\D/g, ''); return d.length === 9 && d.startsWith('9') ? '51' + d : d }
 
 export default function Messages({ ws, uid }: { ws: { id: string }; uid: string }) {
-  const [tpls, setTpls] = useState<T[]>([]), [sel, setSel] = useState(''), [customers, setCustomers] = useState<string[]>([]), [prods, setProds] = useState<{ id: string; name: string; duration: string | null; warranty: string | null }[]>([])
+  const [tpls, setTpls] = useState<T[]>([]), [sel, setSel] = useState(''), [customers, setCustomers] = useState<string[]>([]), [prods, setProds] = useState<{ id: string; name: string; duration: string | null; warranty: string | null; usage_rules: string | null }[]>([])
   const [v, setV] = useState<Record<string, string>>({}), [phone, setPhone] = useState(''), [show, setShow] = useState(false), [wipe, setWipe] = useState(true)
-  const [ed, setEd] = useState<{ id: string; kind: string; name: string; body: string } | null>(null)
+  const [ed, setEd] = useState<{ id: string; kind: string; name: string; body: string; product_id: string } | null>(null)
   const [err, setErr] = useState(''), [note, setNote] = useState(''), [busy, setBusy] = useState(false), [loading, setLoading] = useState(true)
 
   const load = useCallback(async () => {
     const [t, c, p] = await Promise.all([
-      supabase.from('message_templates').select('id,kind,name,body').eq('workspace_id', ws.id).order('kind').order('name'),
+      supabase.from('message_templates').select('id,kind,name,body,product_id').eq('workspace_id', ws.id).order('kind').order('name'),
       supabase.from('sales').select('customer_name').eq('workspace_id', ws.id).order('created_at', { ascending: false }).limit(200),
-      supabase.from('products').select('id,name,duration,warranty').eq('workspace_id', ws.id).order('name')])
+      supabase.from('products').select('id,name,duration,warranty,usage_rules').eq('workspace_id', ws.id).order('name')])
     const bad = t.error || c.error || p.error
     if (bad) { setErr('No se pudo cargar: ' + bad.message); setLoading(false); return }
     setTpls(t.data as T[]); setCustomers([...new Set((c.data as any[]).map(x => x.customer_name))]); setProds(p.data as any[]); setLoading(false)
@@ -41,7 +41,11 @@ export default function Messages({ ws, uid }: { ws: { id: string }; uid: string 
   const set = (k: string, x: string) => setV(o => ({ ...o, [k]: x }))
   function pickProduct(name: string) {
     const p = prods.find(x => x.name === name); set('producto', name)
-    if (p) setV(o => ({ ...o, producto: name, duracion: o.duracion || p.duration || '', garantia: o.garantia || p.warranty || '' }))
+    if (p) {
+      setV(o => ({ ...o, producto: name, duracion: o.duracion || p.duration || '', garantia: o.garantia || p.warranty || '', reglas: p.usage_rules || '' }))
+      const kind = tpl?.kind, mine = tpls.find(t => t.kind === kind && t.product_id === p.id)
+      if (mine) setSel(mine.id); else if (tpl?.product_id && tpl.product_id !== p.id) { const g = tpls.find(t => t.kind === kind && !t.product_id); if (g) setSel(g.id) }
+    }
   }
   function clearSensitive() { setV(o => { const n = { ...o }; SENSITIVE.forEach(k => delete n[k]); return n }) }
   async function copy() {
@@ -57,7 +61,7 @@ export default function Messages({ ws, uid }: { ws: { id: string }; uid: string 
     e.preventDefault(); if (!ed || busy) return
     if (!ed.name.trim() || !ed.body.trim()) return setErr('Nombre y texto son obligatorios.')
     setBusy(true); setErr('')
-    const body = { kind: ed.kind, name: ed.name.trim(), body: ed.body }
+    const body = { kind: ed.kind, name: ed.name.trim(), body: ed.body, product_id: ed.product_id || null }
     const { error } = ed.id ? await supabase.from('message_templates').update(body).eq('id', ed.id) : await supabase.from('message_templates').insert({ ...body, workspace_id: ws.id, created_by: uid })
     setBusy(false); if (error) return setErr(error.message.includes('duplicate') ? 'Ya existe una plantilla con ese tipo y nombre.' : error.message); setEd(null); load()
   }
@@ -68,20 +72,20 @@ export default function Messages({ ws, uid }: { ws: { id: string }; uid: string 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center gap-2"><h2 className="text-lg font-semibold mr-auto">Mensajes de entrega</h2><button className="btn-ghost" onClick={() => { setErr(''); setEd({ id: '', kind: 'entrega', name: '', body: '' }) }}>Nueva plantilla</button></div>
+      <div className="flex items-center gap-2"><h2 className="text-lg font-semibold mr-auto">Mensajes de entrega</h2><button className="btn-ghost" onClick={() => { setErr(''); setEd({ id: '', kind: 'entrega', name: '', body: '', product_id: '' }) }}>Nueva plantilla</button></div>
       {err && !ed && <div className="card border-red-500/50 text-red-300 text-sm">{err}</div>}
       {loading ? <p className="text-astro-gray">Cargando…</p> : <div className="grid lg:grid-cols-2 gap-4">
         <section className="card space-y-3">
           <div className="flex gap-2 items-end">
             <label className="block text-sm flex-1"><span className="text-astro-gray">Plantilla</span><select className="input" value={sel} onChange={e => { setSel(e.target.value); setNote('') }}>
-              {tpls.map(t => <option key={t.id} value={t.id}>{KINDS[t.kind]} · {t.name}</option>)}</select></label>
-            {tpl && <><button className="text-sm text-astro-violet-300 pb-2" onClick={() => { setErr(''); setEd({ ...tpl }) }}>Editar</button><button className="text-sm text-red-400 pb-2" onClick={() => delT(tpl)}>Eliminar</button></>}
+              {tpls.map(t => <option key={t.id} value={t.id}>{KINDS[t.kind]} · {t.name}{t.product_id ? ` · ${prods.find(p => p.id === t.product_id)?.name ?? 'producto'}` : ''}</option>)}</select></label>
+            {tpl && <><button className="text-sm text-astro-violet-300 pb-2" onClick={() => { setErr(''); setEd({ ...tpl, product_id: tpl.product_id ?? '' }) }}>Editar</button><button className="text-sm text-red-400 pb-2" onClick={() => delT(tpl)}>Eliminar</button></>}
           </div>
           <datalist id="customers">{customers.map(c => <option key={c} value={c} />)}</datalist><datalist id="products">{prods.map(p => <option key={p.id} value={p.name} />)}</datalist>
           <div className="grid sm:grid-cols-2 gap-3">
             {FIELDS.filter(([k]) => used.includes(k)).map(([k, l]) => (
-              <label key={k} className={`block text-sm ${k === 'instrucciones' ? 'sm:col-span-2' : ''}`}><span className="text-astro-gray">{l}{OPTIONAL.includes(k) ? ' (opcional)' : ''}</span>
-                {k === 'instrucciones' ? <textarea className="input" rows={2} value={v[k] ?? ''} onChange={e => set(k, e.target.value)} /> :
+              <label key={k} className={`block text-sm ${k === 'instrucciones' || k === 'reglas' ? 'sm:col-span-2' : ''}`}><span className="text-astro-gray">{l}{OPTIONAL.includes(k) ? ' (opcional)' : ''}</span>
+                {k === 'instrucciones' || k === 'reglas' ? <textarea className="input" rows={k === 'reglas' ? 3 : 2} value={v[k] ?? ''} onChange={e => set(k, e.target.value)} /> :
                   <input className="input" type={k === 'vencimiento' ? 'date' : k === 'contrasena' && !show ? 'password' : 'text'} list={k === 'cliente' ? 'customers' : k === 'producto' ? 'products' : undefined}
                     autoComplete="off" value={v[k] ?? ''} onChange={e => k === 'producto' ? pickProduct(e.target.value) : set(k, e.target.value)} />}</label>))}
             <label className="block text-sm"><span className="text-astro-gray">WhatsApp del cliente (opcional)</span><input className="input" inputMode="tel" placeholder="9XXXXXXXX" value={phone} onChange={e => setPhone(e.target.value)} /></label>
@@ -106,7 +110,8 @@ export default function Messages({ ws, uid }: { ws: { id: string }; uid: string 
         <form onSubmit={saveT} className="space-y-3">
           <div className="grid sm:grid-cols-2 gap-3">
             <Field label="Tipo"><select className="input" value={ed.kind} onChange={e => setEd({ ...ed, kind: e.target.value })}>{Object.entries(KINDS).map(([k, l]) => <option key={k} value={k}>{l}</option>)}</select></Field>
-            <Field label="Nombre"><input className="input" value={ed.name} onChange={e => setEd({ ...ed, name: e.target.value })} required /></Field></div>
+            <Field label="Nombre"><input className="input" value={ed.name} onChange={e => setEd({ ...ed, name: e.target.value })} required /></Field>
+            <Field label="Solo para este producto (opcional)" className="sm:col-span-2"><select className="input" value={ed.product_id} onChange={e => setEd({ ...ed, product_id: e.target.value })}><option value="">Todas las cuentas (general)</option>{prods.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select></Field></div>
           <Field label="Texto"><textarea className="input font-mono text-xs" rows={11} value={ed.body} onChange={e => setEd({ ...ed, body: e.target.value })} required /></Field>
           <div className="flex flex-wrap gap-1.5">{FIELDS.map(([k, l]) => <button type="button" key={k} className="btn-ghost !py-0.5 !px-2 text-xs" onClick={() => setEd({ ...ed, body: ed.body + `{{${k}}}` })}>{l}</button>)}</div>
           <p className="text-xs text-amber-400">Las plantillas se guardan en la base de datos: no escribas contraseñas ni credenciales reales en ellas; usa los campos {'{{usuario}}'} y {'{{contrasena}}'}.</p>

@@ -3,9 +3,9 @@ import { supabase, chan, money, CATEGORIES, catLabel } from './lib'
 import { Modal, Field } from './ui'
 
 type P = { id: string; name: string; description: string | null; category: string; supplier_id: string | null; cost: number; sale_price: number; stock: number; min_stock: number
-  duration: string | null; warranty: string | null; delivery_mode: string | null; status: string; on_demand: boolean; unit_profit: number; margin_pct: number; updated_at: string }
+  duration: string | null; warranty: string | null; delivery_mode: string | null; status: string; on_demand: boolean; usage_rules: string | null; unit_profit: number; margin_pct: number; updated_at: string }
 type H = { id: number; old_cost: number | null; new_cost: number; old_price: number | null; new_price: number; changed_at: string; changed_by: string | null }
-const EMPTY = { id: '', name: '', description: '', category: 'otros', supplier_id: '', cost: '0', sale_price: '0', stock: '0', min_stock: '0', duration: '', warranty: '', delivery_mode: '', status: 'active', on_demand: true }
+const EMPTY = { id: '', name: '', description: '', category: 'otros', supplier_id: '', cost: '0', sale_price: '0', stock: '0', min_stock: '0', duration: '', warranty: '', delivery_mode: '', status: 'active', on_demand: true, usage_rules: '' }
 type F = typeof EMPTY
 const SORTS: [string, string][] = [['name', 'Nombre'], ['margin_pct', 'Margen'], ['unit_profit', 'Ganancia'], ['stock', 'Stock'], ['updated_at', 'Actualización']]
 
@@ -37,7 +37,7 @@ export default function Products({ ws, uid }: { ws: { id: string }; uid: string 
   function edit(p?: P) {
     setErr('')
     setForm(p ? { id: p.id, name: p.name, description: p.description ?? '', category: p.category, supplier_id: p.supplier_id ?? '', cost: String(p.cost), sale_price: String(p.sale_price),
-      stock: String(p.stock), min_stock: String(p.min_stock), duration: p.duration ?? '', warranty: p.warranty ?? '', delivery_mode: p.delivery_mode ?? '', status: p.status, on_demand: p.on_demand } : EMPTY)
+      stock: String(p.stock), min_stock: String(p.min_stock), duration: p.duration ?? '', warranty: p.warranty ?? '', delivery_mode: p.delivery_mode ?? '', status: p.status, on_demand: p.on_demand, usage_rules: p.usage_rules ?? '' } : EMPTY)
   }
   async function save(e: React.FormEvent) {
     e.preventDefault(); if (!form) return
@@ -47,7 +47,7 @@ export default function Products({ ws, uid }: { ws: { id: string }; uid: string 
     if (![cost, price].every(v => Number.isFinite(v) && v >= 0)) return setErr('Costo y precio deben ser números válidos (≥ 0).')
     if (![stock, min].every(v => Number.isInteger(v) && v >= 0)) return setErr('Stock y stock mínimo deben ser enteros (≥ 0).')
     const body = { name: form.name.trim(), description: form.description || null, category: form.category, supplier_id: form.supplier_id || null, cost, sale_price: price, stock, min_stock: min,
-      duration: form.duration || null, warranty: form.warranty || null, delivery_mode: form.delivery_mode || null, status: form.status, on_demand: form.on_demand }
+      duration: form.duration || null, warranty: form.warranty || null, delivery_mode: form.delivery_mode || null, status: form.status, on_demand: form.on_demand, usage_rules: form.usage_rules || null }
     setBusy(true); setErr('')
     const { error } = form.id ? await supabase.from('products').update(body).eq('id', form.id) : await supabase.from('products').insert({ ...body, workspace_id: ws.id, created_by: uid })
     setBusy(false)
@@ -119,6 +119,7 @@ export default function Products({ ws, uid }: { ws: { id: string }; uid: string 
           <Field label="Duración"><input className="input" placeholder="Ej. 1 mes" value={form.duration} onChange={set('duration')} /></Field>
           <Field label="Garantía"><input className="input" placeholder="Ej. 30 días" value={form.warranty} onChange={set('warranty')} /></Field>
           <Field label="Modalidad de entrega"><input className="input" placeholder="Ej. Cuenta compartida" value={form.delivery_mode} onChange={set('delivery_mode')} /></Field>
+          <Field label="Reglas de uso (se agregan al mensaje de entrega)" className="sm:col-span-2"><textarea className="input" rows={3} placeholder="Ej. No cambiar la contraseña · 1 dispositivo a la vez · No compartir el acceso" value={form.usage_rules} onChange={set('usage_rules')} /></Field>
           <Field label="Estado"><select className="input" value={form.status} onChange={set('status')}><option value="active">Activo</option><option value="inactive">Inactivo</option></select></Field>
           {err && <p className="sm:col-span-2 text-sm text-red-400">{err}</p>}
           <div className="sm:col-span-2 flex gap-2 justify-end"><button type="button" className="btn-ghost" onClick={() => setForm(null)}>Cancelar</button><button className="btn" disabled={busy}>{busy ? 'Guardando…' : 'Guardar'}</button></div>

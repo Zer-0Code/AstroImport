@@ -1,6 +1,6 @@
 # ASTRO IMPORT
 
-Gestión comercial para dos propietarios: panel, productos, proveedores, calculadora de precios, ventas, finanzas, mensajes de entrega, tareas y reportes (CSV/PDF).
+Gestión comercial para dos propietarios: panel, productos, combos, proveedores, calculadora de precios, ventas, finanzas, mensajes de entrega, tareas y reportes (CSV/PDF).
 Stack: React + Vite + TypeScript + Tailwind · Supabase (PostgreSQL, Auth, Realtime, RLS, Storage) · Netlify.
 
 ## 1. Probar en local
